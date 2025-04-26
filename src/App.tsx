@@ -1,28 +1,74 @@
-import React, { useState } from "react";
-import logo from "./logo.svg";
-import "./App.css";
-import Input from "./Components/Input";
-import { Props } from "./types/type";
-import Message from "./Components/Message";
+import React, { useState, useEffect } from 'react';
+import './index.css';
 
-const App: React.FC = () => {
-  const [todo, setTodo] = useState<string>("");
-  const [todos, setTodos] = useState<Props[]>([]);
+interface Todo {
+  id: string;
+  message: string;
+  completed: boolean;
+}
 
-  const addMessage = () => {
-    if (todo) setTodos([...todos, { message: todo, id: todos.length + 1 }]);
-    setTodo("");
+function App() {
+  const [todos, setTodos] = useState<Todo[]>(() => {
+    const saved = localStorage.getItem('todos');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [text, setText] = useState('');
+
+  useEffect(() => {
+    localStorage.setItem('todos', JSON.stringify(todos));
+  }, [todos]);
+
+  const addTodo = () => {
+    if (!text.trim()) return;
+    setTodos([
+      ...todos,
+      { id: crypto.randomUUID(), message: text.trim(), completed: false }
+    ]);
+    setText('');
   };
 
-  const deleteMessage = (id: number) => {
-    setTodos(todos.filter((todo) => todo.id != id));
-  };
+  const toggle = (id: string) =>
+    setTodos(t =>
+      t.map(x => x.id === id ? { ...x, completed: !x.completed } : x)
+    );
+
+  const remove = (id: string) =>
+    setTodos(t => t.filter(x => x.id !== id));
+
   return (
-    <div className="App">
-      <Input addMessage={addMessage} todo={todo} setTodo={setTodo} />
-      <Message deleteMessage={deleteMessage} todos={todos} />
+    <div className="todo-app">
+      <header className="header">
+        <h1>My Todo List</h1>
+      </header>
+
+      <div className="input-wrapper">
+        <input
+          type="text"
+          placeholder="What needs doing?"
+          value={text}
+          onChange={e => setText(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && addTodo()}
+        />
+        <button onClick={addTodo}>＋</button>
+      </div>
+
+      <ul className="todo-list">
+        {todos.map(t => (
+          <li key={t.id} className={`todo-item ${t.completed ? 'completed' : ''}`}>
+            <input
+              type="checkbox"
+              checked={t.completed}
+              onChange={() => toggle(t.id)}
+            />
+            <span className="todo-text">{t.message}</span>
+            <button className="delete-btn" onClick={() => remove(t.id)}>
+              ✕
+            </button>
+          </li>
+        ))}
+      </ul>
     </div>
   );
-};
+}
 
 export default App;
